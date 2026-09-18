@@ -40,24 +40,51 @@ document.querySelectorAll('.lazy-video').forEach((video) => {
   video.play().catch(() => {});
 });
 
-document.querySelectorAll('.info-trigger').forEach((trigger) => {
+const productInfoNavItems = [...document.querySelectorAll('.product-info-nav')];
+const productInfoPanels = [...document.querySelectorAll('.product-info-panel')];
+
+function setActiveProductInfo(panelId) {
+  productInfoNavItems.forEach((navItem) => {
+    const isActive = navItem.dataset.productPanel === panelId;
+    navItem.classList.toggle('is-active', isActive);
+    navItem.setAttribute('aria-current', isActive ? 'true' : 'false');
+    navItem.removeAttribute('aria-expanded');
+  });
+}
+
+productInfoNavItems.forEach((trigger) => {
   trigger.addEventListener('click', () => {
-    const currentItem = trigger.closest('.info-item');
-    const shouldOpen = !currentItem.classList.contains('is-open');
-    document.querySelectorAll('.info-item').forEach((item) => {
-      item.classList.remove('is-open');
-      item.querySelector('.info-trigger').setAttribute('aria-expanded', 'false');
-      item.querySelector('.info-trigger strong').textContent = '+';
-      item.querySelector('.info-panel').hidden = true;
-    });
-    if (shouldOpen) {
-      currentItem.classList.add('is-open');
-      trigger.setAttribute('aria-expanded', 'true');
-      trigger.querySelector('strong').textContent = '−';
-      currentItem.querySelector('.info-panel').hidden = false;
-    }
+    setActiveProductInfo(trigger.dataset.productPanel);
+    document.getElementById(trigger.dataset.productPanel)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    productInfoScrollLock = true;
+    window.setTimeout(() => {
+      productInfoScrollLock = false;
+      updateActiveProductInfo();
+    }, 800);
   });
 });
+
+let productInfoScrollLock = false;
+
+if (productInfoPanels.length) {
+  setActiveProductInfo(productInfoPanels[0].id);
+  const updateActiveProductInfo = () => {
+    const readingLine = window.innerHeight * .28;
+    const passedPanels = productInfoPanels.filter((panel) => panel.getBoundingClientRect().top <= readingLine);
+    const activePanel = passedPanels[passedPanels.length - 1] || productInfoPanels[0];
+    setActiveProductInfo(activePanel.id);
+  };
+  let activeUpdatePending = false;
+  window.addEventListener('scroll', () => {
+    if (productInfoScrollLock || activeUpdatePending) return;
+    activeUpdatePending = true;
+    window.requestAnimationFrame(() => {
+      updateActiveProductInfo();
+      activeUpdatePending = false;
+    });
+  }, { passive: true });
+  updateActiveProductInfo();
+}
 
 const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
 const mobileMenu = document.querySelector('.mobile-menu');
